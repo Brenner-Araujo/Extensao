@@ -46,7 +46,7 @@ UF = substr(as.character(dados_sinasc_1$CODMUNRES), 1, 2)
 
 # Considerando que a resolução é para o estado de Roraima, ou seja, UF = 14 
 dados_sinasc_2 = dados_sinasc_1[UF == "14",]
-
+dados_sinasc_2 = read.csv2("dados_sinasc_2.csv")
 # Exportar o arquivo com o nome dados_sinasc_2.csv e apagando arquivos não mais necessários
 write.csv(dados_sinasc_2, "dados_sinasc_2.csv", row.names = FALSE)
 
@@ -207,118 +207,294 @@ dados_sinasc_2$ESTCIV = factor(dados_sinasc_2$ESTCIV, levels = c("Sem companheir
 # nova variável apenas para casos de GRAVIDEZ Única: dados_sinasc_2$F_PIG: PIG: PESO < PESO_P10, AIG: PESO_P10 <= PESO <= PESO_P90, GIG: PESO > PESO_P90
 # Atenção para casos de NA em SEMAGESTAC, PESO ou SEXO. Lembre-se também que em dados_sinasc_2 SEXO está como fator com as categorias Feminino e Masculino.
 
+tabela_pig = read.csv("Tabela_PIG_Brasil.csv", header = TRUE, sep=";")
+tabela_pig$SEXO = factor(tabela_pig$SEXO, levels = c("Masculino", "Feminino"))
+dados_sinasc_2 = merge(dados_sinasc_2, tabela_pig, by = c("SEMAGESTAC","SEXO"), all.x = TRUE)
+dados_sinasc_2$F_PIG=ifelse(dados_sinasc_2$GRAVIDEZ != "Única", NA,
+                            ifelse(is.na(dados_sinasc_2$PESO)|is.na(dados_sinasc_2$PESO_P10)|is.na(dados_sinasc_2$PESO_P90),
+                                   NA,
+                                   ifelse(dados_sinasc_2$PESO < dados_sinasc_2$PESO_P10, "PIG",
+                                          ifelse(dados_sinasc_2$PESO<=dados_sinasc_2$PESO_P90, "AIG", "GIG"))))
+dados_sinasc_2$F_PIG = factor(dados_sinasc_2$F_PIG, levels = c("PIG","AIG","GIG"))
 
 
-# Tarefa 9. Obter as frequências das categorias das variáveis qualitativas e medidas descritivas de variáveis quantitativas e salvar os resultados em novas variáveis.
-# Exemplo: freq_SEXO = table(dados_sinasc_2$SEXO)   media_peso = mean(dados_sinasc_2$PESO)
-# Medidas descritivas a serem calculadas para variáveis QUANTITATIVAS: P25, P50, P75, média e desvio-padrão. Atenção: usar na.rm = TRUE, quando necessário.
+# Tarefas 9 e 10 (reformulada)
 
+# Crie um banco de dados contendo as 103 variáveis listadas no arquivo
+# “Variáveis - Projeto - Tarefas 9 e 10 da Etapa 1.pdf”
+# O banco final deverá possuir:
+#  103 colunas, correspondentes às variáveis especificadas;
+#  n + 1 linhas, onde:
+#  n corresponde ao número de municípios distintos da UF em análise
+#  a primeira linha corresponde aos valores agregados para a UF como
+# um todo;
+# as demais linhas correspondem aos municípios da UF.
+# As variáveis devem ser construídas a partir dos microdados do SINASC 
+# (dados_sinasc, dados_sinasc_1 e dados_sinasc_2), respeitando os nomes e 
+# a ordem especificados.
+#
+#######################################################
+# ETAPA 1: TAREFAS 9 E 10 - CONSOLIDAÇÃO DE INDICADORES
+#######################################################
 
-# Tarefa 10. Criar as colunas do novo banco de dados (de nome SINASC_UF.csv Exemplo: SINASC_RJ.csv) com base nas análises prévias, devendo as variáveis estar na ordem indicada abaixo
-# ATENÇÃO aos nomes das variáveis e ordem das colunas
-# 1. ANO: 2015  2. UFR (Estado de residência)   3. TN (total de nascimentos)   4. TNRC (total de nascimentos com registros completos, ou seja, sem NA em todas as variáveis do banco de dados)
-# 5. TGI_15 (total de gestantes com idade inferior a 15 anos - F_IDADE)   6. TGI_15_19 (total de gestantes com idade >=15 e <=19 anos)
-# 7: TGI_20_24 (total de gestantes com idade >=20 e <=24 anos)   8. TGI_25_29 (total de gestantes com idade >=25 e <=29 anos)
-# 9: TGI_30_34 (total de gestantes com idade >=30 e <=34 anos)   10. TGI_35_39 (total de gestantes com idade >=35 e <=39 anos)
-# 11: TGI_40_44 (total de gestantes com idade >=40 e <=44 anos)  12. TGI_45_49 (total de gestantes com idade >=45 e <=49 anos)
-# 13: TGI_50 (total de gestantes com idade >=50)   14: TGIF (total de gestantes em idade fértil, idade >=15 e <=49 anos)
-# 15: IM_P25 (percentil 25 da idade materna - IDADEMAE) 16: IM_P50 (percentil 50 da idade materna)   17: IM_P75 (percentil 75 da idade materna)
-# 18. IM_MD (idade média materna)   19: IM_DP (desvio-padrão da idade materna)
-# 20. EM_S (total de gestantes sem escolaridade, ESCMAE2010=0)   21: EM_FI (total de gestantes com escolaridade Fundamental I)
-# 22. EM_FII (total de gestantes com escolaridade Fundamental II)   23. EM_M (total de gestantes com escolaridade Médio)   
-# 24. EM_SI (total de gestantes com escolaridade Superior Incompleto)   25. EM_SC (total de gestantes com escolaridade Superior Completo) 
-# 26. TGRC_B (total de gestantes da raça/cor branca - RACACORMAE)   27. TGRC_PT (total de gestantes da raça/cor preta)
-# 28. TGRC_A (total de gestantes da raça/cor amarela)   29. TGRC_PD (total de gestantes da raça/cor parda)
-# 30. TGRC_I (total de gestantes da raça/cor indígena)
-# 31. TGSC (total de gestantes sem companheiro - ESTCIV)   32. TGCC (total de gestantes com companheiro)
-# 33. TGPRI (total de gestantes primíparas - PARIDADE)     34. TGNPRI (total de gestantes não primíparas)
-# 35. TGU (total de gestações única)   36. TGG (total de gestações gemelares)   37. TGD_22 (total de gestações com duração inferior a 22 semanas - GESTACAO)
-# 38. TGD_22_27 (total de gestações com duração da gestação >=22 e <=27)   39. TGD_28_31 (total de gestações com duração da gestação >=28 e <=31)
-# 40. TGD_32_36 (total de gestações com duração da gestação >=32 e <=36)   41. TGD_37_41 (total de gestações com duração da gestação >=37 e <=41)
-# 42. TGD_42 (total de gestações com duração da gestação >=42)   43. TGD_PRT (total de gestações pre-termo, duração < 37 semanas)
-# 44. TGD_AT (total de gestações a termo, duração >=37 e <=41)   45. TGD_PST  (total de gestações pós termo, duração >=42) 
-# 46. DG_P25 (percentil 25 da duração da gestação - SEMAGESTAC)  47. DG_P50 (percentil 50 da duração da gestação)   
-# 48. DG_P75 (percentil 75 da duração da gestação)   49. DG_MD (idade média da duração da gestação)   50. DG_DP (desvio-padrão da duração da gestação)
-# 51. TKC_NR (total de consultas de pre-natal não realizado - KOTELCHUCK)   52. TKC_ID (total de consultas de pre-natal inadequado)
-# 53. TKC_IT (total de consultas de pre-natal intermediário)   54. TKC_AD (total de consultas de pre-natal adequado)  
-# 55. TKC_MAD (total de consultas de pre-natal mais que adequado)   56. TGPRG_S (total de gestantes que peregrinaram)  
-# 57. TGPRG_N (total de gestantes que não peregrinaram)    58. TPV (total de partos vaginais)   59. TPC (total de partos cesáreos) 
-# 60. TRAP_C (total de recém-nascidos na posição cefálica - TPAPRESENT)   61. TRAP_P (total de recém-nascidos na posição pélvica ou podálica)
-# 62. TRAP_T (total de recém-nascidos na posição transversa)  63. TGROB_1 (total de gestantes do grupo de Robson 1 - TPROBSON)
-# 64. TGROB_2 (total de gestantes do grupo de Robson 2)   65. TGROB_3 (total de gestantes do grupo de Robson 3)
-# 66. TGROB_4 (total de gestantes do grupo de Robson 4)   67. TGROB_5 (total de gestantes do grupo de Robson 5)
-# 68. TGROB_6 (total de gestantes do grupo de Robson 6)   69. TGROB_7 (total de gestantes do grupo de Robson 7)
-# 70. TGROB_8 (total de gestantes do grupo de Robson 8)   71. TGROB_9 (total de gestantes do grupo de Robson 9)
-# 72. TGROB_10 (total de gestantes do grupo de Robson 10)   
-# 73. TNLOC_H (total de nascimentos em hospital)   74. TNLOC_ES (total de nascimentos em outros estabelecimentos de saúde)
-# 75. TNLOC_D (total de nascimentos em domicílio)  76. TNLOC_O (total de nascimentos em outros locais) 
-# 77. TNLOC_AI (total de nascimentos em aldeias indígenas)   
-# 78. TRRC_B (total de recém-nascidos da raça/cor branca - RACACOR)   79. TRRC_PT (total de recém-nascidos da raça/cor preta)
-# 80. TRRC_A (total de recém-nascidos da raça/cor amarela)   81. TRRC_PD (total de recém-nascidos da raça/cor parda)
-# 82. TRRC_I (total de recém-nascidos da raça/cor indígena)  83. TRP_BP (total de recém nascidos com baixo peso - FPESO)
-# 84. TRP_N (total de recém nascidos com peso normal)   85. TRP_M (total de recém nascidos com macrossomia)
-# 86. PESO_P25 (percentil 25 do peso dos recém-nascidos - PESO)  87. PESO_P50 (percentil 50 do peso dos recém-nascidos)   
-# 88. PESO_P75 (percentil 75 do peso dos recém-nascidos)  89. PESO_MD (peso médio dos recém-nascidos)   
-# 90. PESO_DP (desvio-padrão dos pesos dos recém-nascidos)    91. TRPIG_P (total de recém-nascidos de GESTAÇÕES ÚNICAS com PIG) 
-# 92. TRPIG_A (total de recém-nascidos de GESTAÇÕES ÚNICAS com AIG)   93. TRPIG_G (total de recém-nascidos de GESTAÇÕES ÚNICAS com GIG)
-# 94: TRAPG5_B (total de recém-nascidos com Apgar5 baixo, ou seja, < 7)
-# 95: TRAPG5_N (total de recém-nascidos com Apgar5 normal, ou seja, >= 7)   96. APG5_MD (Apgar5 médio dos recém-nascidos)   
-# 97. APG5_DP (desvio-padrão dos Apgar5 dos recém-nascidos)   98. TRAC (total de recém-nascidos com anomalia congênita - IDANOMAL)
-# 99. TRSAC (total de recém-nascidos sem anomalia congênita)
+# 1. Funções auxiliares para manter a consistência do seu script
+# Usamos as variáveis criadas nas Tarefas 7 e 8 [cite: 1]
+calc_mun = function(coluna) as.vector(tapply(coluna, dados_sinasc_2$CODMUNRES, sum, na.rm = TRUE))
+calc_mun_mean = function(coluna) as.vector(tapply(coluna, dados_sinasc_2$CODMUNRES, mean, na.rm = TRUE))
+calc_mun_sd = function(coluna) as.vector(tapply(coluna, dados_sinasc_2$CODMUNRES, sd, na.rm = TRUE))
+calc_mun_quant = function(coluna, p) as.vector(tapply(coluna, dados_sinasc_2$CODMUNRES, quantile, probs = p, na.rm = TRUE))
+
+# 2. Criando o dataframe para os Municípios (Linhas n) [cite: 3]
+municipios = data.frame(
+  ANO = 2015, NIVEL = "MUNICIPIO", CODMUNRES = names(table(dados_sinasc_2$CODMUNRES)), # Col 1-3
+  TN = as.vector(table(dados_sinasc_2$CODMUNRES)), # Col 4
+  TNRC = as.vector(tapply(complete.cases(dados_sinasc_2), dados_sinasc_2$CODMUNRES, sum)), # Col 5
+  TNRCR = as.vector(tapply(complete.cases(dados_sinasc_2), dados_sinasc_2$CODMUNRES, sum)), # Col 6
+  
+  # Informações sobre as gestantes - Idade (Col 7-16) [cite: 1]
+  TGI_15 = calc_mun(dados_sinasc_2$IDADEMAE < 15),
+  TGI_15_19 = calc_mun(dados_sinasc_2$IDADEMAE >= 15 & dados_sinasc_2$IDADEMAE <= 19),
+  TGI_20_24 = calc_mun(dados_sinasc_2$IDADEMAE >= 20 & dados_sinasc_2$IDADEMAE <= 24),
+  TGI_25_29 = calc_mun(dados_sinasc_2$IDADEMAE >= 25 & dados_sinasc_2$IDADEMAE <= 29),
+  TGI_30_34 = calc_mun(dados_sinasc_2$IDADEMAE >= 30 & dados_sinasc_2$IDADEMAE <= 34),
+  TGI_35_39 = calc_mun(dados_sinasc_2$IDADEMAE >= 35 & dados_sinasc_2$IDADEMAE <= 39),
+  TGI_40_44 = calc_mun(dados_sinasc_2$IDADEMAE >= 40 & dados_sinasc_2$IDADEMAE <= 44),
+  TGI_45_49 = calc_mun(dados_sinasc_2$IDADEMAE >= 45 & dados_sinasc_2$IDADEMAE <= 49),
+  TGI_50 = calc_mun(dados_sinasc_2$IDADEMAE >= 50),
+  TGIF = calc_mun(dados_sinasc_2$IDADEMAE >= 15 & dados_sinasc_2$IDADEMAE <= 49),
+  
+  # Estatísticas de Idade Materna (Col 17-21) [cite: 1]
+  IM_P25 = calc_mun_quant(dados_sinasc_2$IDADEMAE, 0.25),
+  IM_P50 = calc_mun_quant(dados_sinasc_2$IDADEMAE, 0.50),
+  IM_P75 = calc_mun_quant(dados_sinasc_2$IDADEMAE, 0.75),
+  IM_MD = calc_mun_mean(dados_sinasc_2$IDADEMAE),
+  IM_DP = calc_mun_sd(dados_sinasc_2$IDADEMAE),
+  
+  # Escolaridade e Raça (Col 22-32) [cite: 1]
+  EM_S = calc_mun(dados_sinasc_2$ESCMAE2010 == "Sem escolaridade"),
+  EM_FI = calc_mun(dados_sinasc_2$ESCMAE2010 == "Fundamental I (1ª a 4ª série)"),
+  EM_FII = calc_mun(dados_sinasc_2$ESCMAE2010 == "Fundamental II (5ª a 8ª série)"),
+  EM_M = calc_mun(dados_sinasc_2$ESCMAE2010 == "Médio (antigo 2º grau)"),
+  EM_SI = calc_mun(dados_sinasc_2$ESCMAE2010 == "Superior incompleto"),
+  EM_SC = calc_mun(dados_sinasc_2$ESCMAE2010 == "Superior completo"),
+  TGRC_B = calc_mun(dados_sinasc_2$RACACORMAE == "Branca"),
+  TGRC_PT = calc_mun(dados_sinasc_2$RACACORMAE == "Preta"),
+  TGRC_A = calc_mun(dados_sinasc_2$RACACORMAE == "Amarela"),
+  TGRC_PD = calc_mun(dados_sinasc_2$RACACORMAE == "Parda"),
+  TGRC_I = calc_mun(dados_sinasc_2$RACACORMAE == "Indígena"),
+  
+  # Estado Civil e Paridade (Col 33-36) [cite: 1]
+  TGSC = calc_mun(dados_sinasc_2$ESTCIV == "Sem companheiro"),
+  TGCC = calc_mun(dados_sinasc_2$ESTCIV == "Com companheiro"),
+  TGPRI = calc_mun(dados_sinasc_2$PARIDADE == "Nulípara"),
+  TGNPRI = calc_mun(dados_sinasc_2$PARIDADE == "Multípara"),
+  
+  # Duração da Gestação (Col 37-52) [cite: 1, 3]
+  TGU = calc_mun(dados_sinasc_2$GRAVIDEZ == "Única"),
+  TGG = calc_mun(dados_sinasc_2$GRAVIDEZ %in% c("Dupla", "Tripla ou mais")),
+  TGD_22 = calc_mun(dados_sinasc_2$GESTACAO == "Menos de 22 semanas"),
+  TGD_22_27 = calc_mun(dados_sinasc_2$GESTACAO == "22 a 27 semanas"),
+  TGD_28_31 = calc_mun(dados_sinasc_2$GESTACAO == "28 a 31 semanas"),
+  TGD_32_36 = calc_mun(dados_sinasc_2$GESTACAO == "32 a 36 semanas"),
+  TGD_37_41 = calc_mun(dados_sinasc_2$SEMAGESTAC >= 37 & dados_sinasc_2$SEMAGESTAC <= 41),
+  TGD_42 = calc_mun(dados_sinasc_2$GESTACAO == "42 semanas e mais"),
+  TGD_PRT = calc_mun(dados_sinasc_2$SEMAGESTAC < 37),
+  TGD_AT = calc_mun(dados_sinasc_2$SEMAGESTAC >= 37 & dados_sinasc_2$SEMAGESTAC <= 41),
+  TGD_PST = calc_mun(dados_sinasc_2$SEMAGESTAC >= 42),
+  DG_P25 = calc_mun_quant(dados_sinasc_2$SEMAGESTAC, 0.25),
+  DG_P50 = calc_mun_quant(dados_sinasc_2$SEMAGESTAC, 0.50),
+  DG_P75 = calc_mun_quant(dados_sinasc_2$SEMAGESTAC, 0.75),
+  DG_MD = calc_mun_mean(dados_sinasc_2$SEMAGESTAC),
+  DG_DP = calc_mun_sd(dados_sinasc_2$SEMAGESTAC),
+  
+  # Pré-natal e Peregrinação (Col 53-59) [cite: 3]
+  TKC_NR = calc_mun(dados_sinasc_2$KOTELCHUCK == "Não realizou pré-natal"),
+  TKC_ID = calc_mun(dados_sinasc_2$KOTELCHUCK == "Inadequado"),
+  TKC_IT = calc_mun(dados_sinasc_2$KOTELCHUCK == "Intermediário"),
+  TKC_AD = calc_mun(dados_sinasc_2$KOTELCHUCK == "Adequado"),
+  TKC_MAD = calc_mun(dados_sinasc_2$KOTELCHUCK == "Mais que adequado"),
+  TGPRG_S = calc_mun(dados_sinasc_2$PERIG == "Sim"),
+  TGPRG_N = calc_mun(dados_sinasc_2$PERIG == "Não"),
+  
+  # Parto e Apresentação (Col 60-64) [cite: 3]
+  TPV = calc_mun(dados_sinasc_2$PARTO == "Vaginal"),
+  TPC = calc_mun(dados_sinasc_2$PARTO == "Cesário"),
+  TRAP_C = calc_mun(dados_sinasc_2$TPAPRESENT == "Cefálico"),
+  TRAP_P = calc_mun(dados_sinasc_2$TPAPRESENT == "Pélvica ou podálica"),
+  TRAP_T = calc_mun(dados_sinasc_2$TPAPRESENT == "Transversa"),
+  
+  # Grupos de Robson (Col 65-74) [cite: 3]
+  TGROB_1 = calc_mun(dados_sinasc_2$TPROBSON == "Grupo 1"),
+  TGROB_2 = calc_mun(dados_sinasc_2$TPROBSON == "Grupo 2"),
+  TGROB_3 = calc_mun(dados_sinasc_2$TPROBSON == "Grupo 3"),
+  TGROB_4 = calc_mun(dados_sinasc_2$TPROBSON == "Grupo 4"),
+  TGROB_5 = calc_mun(dados_sinasc_2$TPROBSON == "Grupo 5"),
+  TGROB_6 = calc_mun(dados_sinasc_2$TPROBSON == "Grupo 6"),
+  TGROB_7 = calc_mun(dados_sinasc_2$TPROBSON == "Grupo 7"),
+  TGROB_8 = calc_mun(dados_sinasc_2$TPROBSON == "Grupo 8"),
+  TGROB_9 = calc_mun(dados_sinasc_2$TPROBSON == "Grupo 9"),
+  TGROB_10 = calc_mun(dados_sinasc_2$TPROBSON == "Grupo 10"),
+  
+  # Local do Nascimento (Col 75-79) [cite: 3]
+  TNLOC_H = calc_mun(dados_sinasc_2$LOCNASC == "Hospital"),
+  TNLOC_ES = calc_mun(dados_sinasc_2$LOCNASC == "Outros estabelecimentos de saúde"),
+  TNLOC_D = calc_mun(dados_sinasc_2$LOCNASC == "Domicílio"),
+  TNLOC_O = calc_mun(dados_sinasc_2$LOCNASC == "Outros"),
+  TNLOC_AI = calc_mun(dados_sinasc_2$LOCNASC == "Aldeias indígenas"),
+  
+  # Informações do Recém-nascido (Col 80-94) [cite: 3, 4]
+  TRS_M = calc_mun(dados_sinasc_2$SEXO == "Masculino"),
+  TRS_F = calc_mun(dados_sinasc_2$SEXO == "Feminino"),
+  TRRC_B = calc_mun(dados_sinasc_2$RACACOR == "Branca"),
+  TRRC_PT = calc_mun(dados_sinasc_2$RACACOR == "Preta"),
+  TRRC_A = calc_mun(dados_sinasc_2$RACACOR == "Amarela"),
+  TRRC_PD = calc_mun(dados_sinasc_2$RACACOR == "Parda"),
+  TRRC_I = calc_mun(dados_sinasc_2$RACACOR == "Indígena"),
+  TRP_BP = calc_mun(dados_sinasc_2$F_PESO == "Baixo peso"),
+  TRP_N = calc_mun(dados_sinasc_2$F_PESO == "Peso normal"),
+  TRP_M = calc_mun(dados_sinasc_2$F_PESO == "Macrossomia"),
+  PESO_P25 = calc_mun_quant(dados_sinasc_2$PESO, 0.25),
+  PESO_P50 = calc_mun_quant(dados_sinasc_2$PESO, 0.50),
+  PESO_P75 = calc_mun_quant(dados_sinasc_2$PESO, 0.75),
+  PESO_MD = calc_mun_mean(dados_sinasc_2$PESO),
+  PESO_DP = calc_mun_sd(dados_sinasc_2$PESO),
+  
+  # PIG, Apgar e Anomalias (Col 95-103) [cite: 4]
+  TRPIG_P = calc_mun(dados_sinasc_2$F_PIG == "PIG"),
+  TRPIG_A = calc_mun(dados_sinasc_2$F_PIG == "AIG"),
+  TRPIG_G = calc_mun(dados_sinasc_2$F_PIG == "GIG"),
+  TRAPG5_B = calc_mun(dados_sinasc_2$F_APGAR5 == "Baixo"),
+  TRAPG5_N = calc_mun(dados_sinasc_2$F_APGAR5 == "Normal"),
+  APG5_MD = calc_mun_mean(dados_sinasc_2$APGAR5),
+  APG5_DP = calc_mun_sd(dados_sinasc_2$APGAR5),
+  TRAC = calc_mun(dados_sinasc_2$IDANOMAL == "Sim"),
+  TRSAC = calc_mun(dados_sinasc_2$IDANOMAL == "Não")
+)
+
+# 3. Criando a linha para a UF (Total do Estado) 
+# IMPORTANTE: Esta linha deve conter as mesmas 103 colunas na mesma ordem
+uf_linha = data.frame(
+  ANO = 2015, NIVEL = "UF", CODMUNRES = "14",
+  TN = nrow(dados_sinasc_2),
+  TNRC = sum(complete.cases(dados_sinasc_2)),
+  TNRCR = sum(complete.cases(dados_sinasc_2)),
+  
+  TGI_15 = sum(dados_sinasc_2$IDADEMAE < 15, na.rm = T),
+  TGI_15_19 = sum(dados_sinasc_2$IDADEMAE >= 15 & dados_sinasc_2$IDADEMAE <= 19, na.rm = T),
+  TGI_20_24 = sum(dados_sinasc_2$IDADEMAE >= 20 & dados_sinasc_2$IDADEMAE <= 24, na.rm = T),
+  TGI_25_29 = sum(dados_sinasc_2$IDADEMAE >= 25 & dados_sinasc_2$IDADEMAE <= 29, na.rm = T),
+  TGI_30_34 = sum(dados_sinasc_2$IDADEMAE >= 30 & dados_sinasc_2$IDADEMAE <= 34, na.rm = T),
+  TGI_35_39 = sum(dados_sinasc_2$IDADEMAE >= 35 & dados_sinasc_2$IDADEMAE <= 39, na.rm = T),
+  TGI_40_44 = sum(dados_sinasc_2$IDADEMAE >= 40 & dados_sinasc_2$IDADEMAE <= 44, na.rm = T),
+  TGI_45_49 = sum(dados_sinasc_2$IDADEMAE >= 45 & dados_sinasc_2$IDADEMAE <= 49, na.rm = T),
+  TGI_50 = sum(dados_sinasc_2$IDADEMAE >= 50, na.rm = T),
+  TGIF = sum(dados_sinasc_2$IDADEMAE >= 15 & dados_sinasc_2$IDADEMAE <= 49, na.rm = T),
+  IM_P25 = quantile(dados_sinasc_2$IDADEMAE, 0.25, na.rm = T),
+  IM_P50 = quantile(dados_sinasc_2$IDADEMAE, 0.50, na.rm = T),
+  IM_P75 = quantile(dados_sinasc_2$IDADEMAE, 0.75, na.rm = T),
+  IM_MD = mean(dados_sinasc_2$IDADEMAE, na.rm = T),
+  IM_DP = sd(dados_sinasc_2$IDADEMAE, na.rm = T),
+  
+  EM_S = sum(dados_sinasc_2$ESCMAE2010 == "Sem escolaridade", na.rm = T),
+  EM_FI = sum(dados_sinasc_2$ESCMAE2010 == "Fundamental I (1ª a 4ª série)", na.rm = T),
+  EM_FII = sum(dados_sinasc_2$ESCMAE2010 == "Fundamental II (5ª a 8ª série)", na.rm = T),
+  EM_M = sum(dados_sinasc_2$ESCMAE2010 == "Médio (antigo 2º grau)", na.rm = T),
+  EM_SI = sum(dados_sinasc_2$ESCMAE2010 == "Superior incompleto", na.rm = T),
+  EM_SC = sum(dados_sinasc_2$ESCMAE2010 == "Superior completo", na.rm = T),
+  TGRC_B = sum(dados_sinasc_2$RACACORMAE == "Branca", na.rm = T),
+  TGRC_PT = sum(dados_sinasc_2$RACACORMAE == "Preta", na.rm = T),
+  TGRC_A = sum(dados_sinasc_2$RACACORMAE == "Amarela", na.rm = T),
+  TGRC_PD = sum(dados_sinasc_2$RACACORMAE == "Parda", na.rm = T),
+  TGRC_I = sum(dados_sinasc_2$RACACORMAE == "Indígena", na.rm = T),
+  
+  TGSC = sum(dados_sinasc_2$ESTCIV == "Sem companheiro", na.rm = T),
+  TGCC = sum(dados_sinasc_2$ESTCIV == "Com companheiro", na.rm = T),
+  TGPRI = sum(dados_sinasc_2$PARIDADE == "Nulípara", na.rm = T),
+  TGNPRI = sum(dados_sinasc_2$PARIDADE == "Multípara", na.rm = T),
+  
+  TGU = sum(dados_sinasc_2$GRAVIDEZ == "Única", na.rm = T),
+  TGG = sum(dados_sinasc_2$GRAVIDEZ %in% c("Dupla", "Tripla ou mais"), na.rm = T),
+  TGD_22 = sum(dados_sinasc_2$GESTACAO == "Menos de 22 semanas", na.rm = T),
+  TGD_22_27 = sum(dados_sinasc_2$GESTACAO == "22 a 27 semanas", na.rm = T),
+  TGD_28_31 = sum(dados_sinasc_2$GESTACAO == "28 a 31 semanas", na.rm = T),
+  TGD_32_36 = sum(dados_sinasc_2$GESTACAO == "32 a 36 semanas", na.rm = T),
+  TGD_37_41 = sum(dados_sinasc_2$SEMAGESTAC >= 37 & dados_sinasc_2$SEMAGESTAC <= 41, na.rm = T),
+  TGD_42 = sum(dados_sinasc_2$GESTACAO == "42 semanas e mais", na.rm = T),
+  TGD_PRT = sum(dados_sinasc_2$SEMAGESTAC < 37, na.rm = T),
+  TGD_AT = sum(dados_sinasc_2$SEMAGESTAC >= 37 & dados_sinasc_2$SEMAGESTAC <= 41, na.rm = T),
+  TGD_PST = sum(dados_sinasc_2$SEMAGESTAC >= 42, na.rm = T),
+  DG_P25 = quantile(dados_sinasc_2$SEMAGESTAC, 0.25, na.rm = T),
+  DG_P50 = quantile(dados_sinasc_2$SEMAGESTAC, 0.50, na.rm = T),
+  DG_P75 = quantile(dados_sinasc_2$SEMAGESTAC, 0.75, na.rm = T),
+  DG_MD = mean(dados_sinasc_2$SEMAGESTAC, na.rm = T),
+  DG_DP = sd(dados_sinasc_2$SEMAGESTAC, na.rm = T),
+  
+  TKC_NR = sum(dados_sinasc_2$KOTELCHUCK == "Não realizou pré-natal", na.rm = T),
+  TKC_ID = sum(dados_sinasc_2$KOTELCHUCK == "Inadequado", na.rm = T),
+  TKC_IT = sum(dados_sinasc_2$KOTELCHUCK == "Intermediário", na.rm = T),
+  TKC_AD = sum(dados_sinasc_2$KOTELCHUCK == "Adequado", na.rm = T),
+  TKC_MAD = sum(dados_sinasc_2$KOTELCHUCK == "Mais que adequado", na.rm = T),
+  TGPRG_S = sum(dados_sinasc_2$PERIG == "Sim", na.rm = T),
+  TGPRG_N = sum(dados_sinasc_2$PERIG == "Não", na.rm = T),
+  
+  TPV = sum(dados_sinasc_2$PARTO == "Vaginal", na.rm = T),
+  TPC = sum(dados_sinasc_2$PARTO == "Cesário", na.rm = T),
+  TRAP_C = sum(dados_sinasc_2$TPAPRESENT == "Cefálico", na.rm = T),
+  TRAP_P = sum(dados_sinasc_2$TPAPRESENT == "Pélvica ou podálica", na.rm = T),
+  TRAP_T = sum(dados_sinasc_2$TPAPRESENT == "Transversa", na.rm = T),
+  
+  TGROB_1 = sum(dados_sinasc_2$TPROBSON == "Grupo 1", na.rm = T),
+  TGROB_2 = sum(dados_sinasc_2$TPROBSON == "Grupo 2", na.rm = T),
+  TGROB_3 = sum(dados_sinasc_2$TPROBSON == "Grupo 3", na.rm = T),
+  TGROB_4 = sum(dados_sinasc_2$TPROBSON == "Grupo 4", na.rm = T),
+  TGROB_5 = sum(dados_sinasc_2$TPROBSON == "Grupo 5", na.rm = T),
+  TGROB_6 = sum(dados_sinasc_2$TPROBSON == "Grupo 6", na.rm = T),
+  TGROB_7 = sum(dados_sinasc_2$TPROBSON == "Grupo 7", na.rm = T),
+  TGROB_8 = sum(dados_sinasc_2$TPROBSON == "Grupo 8", na.rm = T),
+  TGROB_9 = sum(dados_sinasc_2$TPROBSON == "Grupo 9", na.rm = T),
+  TGROB_10 = sum(dados_sinasc_2$TPROBSON == "Grupo 10", na.rm = T),
+  
+  TNLOC_H = sum(dados_sinasc_2$LOCNASC == "Hospital", na.rm = T),
+  TNLOC_ES = sum(dados_sinasc_2$LOCNASC == "Outros estabelecimentos de saúde", na.rm = T),
+  TNLOC_D = sum(dados_sinasc_2$LOCNASC == "Domicílio", na.rm = T),
+  TNLOC_O = sum(dados_sinasc_2$LOCNASC == "Outros", na.rm = T),
+  TNLOC_AI = sum(dados_sinasc_2$LOCNASC == "Aldeias indígenas", na.rm = T),
+  
+  TRS_M = sum(dados_sinasc_2$SEXO == "Masculino", na.rm = T),
+  TRS_F = sum(dados_sinasc_2$SEXO == "Feminino", na.rm = T),
+  TRRC_B = sum(dados_sinasc_2$RACACOR == "Branca", na.rm = T),
+  TRRC_PT = sum(dados_sinasc_2$RACACOR == "Preta", na.rm = T),
+  TRRC_A = sum(dados_sinasc_2$RACACOR == "Amarela", na.rm = T),
+  TRRC_PD = sum(dados_sinasc_2$RACACOR == "Parda", na.rm = T),
+  TRRC_I = sum(dados_sinasc_2$RACACOR == "Indígena", na.rm = T),
+  TRP_BP = sum(dados_sinasc_2$F_PESO == "Baixo peso", na.rm = T),
+  TRP_N = sum(dados_sinasc_2$F_PESO == "Peso normal", na.rm = T),
+  TRP_M = sum(dados_sinasc_2$F_PESO == "Macrossomia", na.rm = T),
+  PESO_P25 = quantile(dados_sinasc_2$PESO, 0.25, na.rm = T),
+  PESO_P50 = quantile(dados_sinasc_2$PESO, 0.50, na.rm = T),
+  PESO_P75 = quantile(dados_sinasc_2$PESO, 0.75, na.rm = T),
+  PESO_MD = mean(dados_sinasc_2$PESO, na.rm = T),
+  PESO_DP = sd(dados_sinasc_2$PESO, na.rm = T),
+  
+  TRPIG_P = sum(dados_sinasc_2$F_PIG == "PIG", na.rm = T),
+  TRPIG_A = sum(dados_sinasc_2$F_PIG == "AIG", na.rm = T),
+  TRPIG_G = sum(dados_sinasc_2$F_PIG == "GIG", na.rm = T),
+  TRAPG5_B = sum(dados_sinasc_2$F_APGAR5 == "Baixo", na.rm = T),
+  TRAPG5_N = sum(dados_sinasc_2$F_APGAR5 == "Normal", na.rm = T),
+  APG5_MD = mean(dados_sinasc_2$APGAR5, na.rm = T),
+  APG5_DP = sd(dados_sinasc_2$APGAR5, na.rm = T),
+  TRAC = sum(dados_sinasc_2$IDANOMAL == "Sim", na.rm = T),
+  TRSAC = sum(dados_sinasc_2$IDANOMAL == "Não", na.rm = T)
+)
+
+# Combinando UF e Municípios e Exportando
+SINASC_RR = rbind(uf_linha, municipios)
 
 
 # Tarefa 11: Exporte o banco de dados com o nome SINASC_UF.csv
 
-
+write.csv2(SINASC_RR, "SINASC_RR.csv")
 
 # Ao terminar a ETAPA 1 commite e envie para o repositório REMOTO com o comentário "Dados da UF e Script Etapa 1"
 
-
-
-##################################
-# ETAPA 2: BANCO DE DADOS DO SIM
-##################################
-# Só inicie esta Etapa quando a professora orientar
-# ESTANDO NA BRANCH SINASC, NÃO ALTERE NADA NO SCRIPT REFERENTE A ETAPA 2
-
-# Tarefa 1. Leitura do banco de dados Mortalidade_Geral_2015 do SIM 2015 com 1216475 linhas e 87 colunas
-# verificar se a leitura foi feita corretamente e a estrutura dos dados
-# nomeie o banco de dados como dados_sim
-
-
-# Tarefa 2. Reduzir dados_sim apenas para as colunas que serão utilizadas, nomeando este novo banco de dados como dados_sim_1
-# as colunas serão (a informar)
-# nomes das respectivas variáveis: CONTADOR, TIPOBITO, CODMUNNATU, IDADE,  SEXO,  RACACOR,  ESTCIV, ESC2010, 
-# CODMUNRES,  LOCOCOR, CODMUNOCOR, TPMORTEOCO,  OBITOGRAV, OBITOPUERP, CAUSABAS, CAUSABAS_O, TPOBITOCOR, MORTEPARTO
-
-
-
-#####################################################
-# ETAPA 3: OUTROS BANCOS DE DADOS: IBGE, SNIS, ...
-#####################################################
-# Só inicie esta Etapa quando a professora orientar
-# ESTANDO NA BRANCH SINASC, NÃO ALTERE NADA NO SCRIPT REFERENTE A ETAPA 3
-
-# Tarefa 1. Acesso aos bancos de dados e obtenção da informação
-
-
-
-#####################################################################################################
-# ETAPA 4: GERAR BANCO DE DADOS FINAL DO ESTADO, BASEADO NAS ANÁLISES DE SINASC, SIM, IBGE, SNIS,...
-######################################################################################################
-# Só inicie esta Etapa quando a professora orientar
-# ESTANDO NA BRANCH SINASC, NÃO ALTERE NADA NO SCRIPT REFERENTE A ETAPA 4
-
-# Cada aluno gerar um dataframe de uma única linha (referente ao seu estado) com as variáveis na ordem indicada pela professora
-
-
-
-############################################################################################
-# ETAPA 5: EMPILHAMENTO DOS DATAFRAMES DE CADA ESTADO, GERANDO UM DATAFRAME DE 27 LINHAS
-############################################################################################
-# Só inicie esta Etapa quando a professora orientar
-# ESTANDO NA BRANCH SINASC, NÃO ALTERE NADA NO SCRIPT REFERENTE A ETAPA 5
-
-# 1. Enviar arquivos para as pastas do repositório da Professora no GitHUb
-# 2. A professora fará o empilhamentos dos dataframes
 
