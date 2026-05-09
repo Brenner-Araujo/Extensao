@@ -544,11 +544,34 @@ write.csv2(dados_sim_2, "dados_sim_2.csv")
 # Tarefa 4. Verificar em dados_sim_2 a frequência das categorias das seguintes variáveis: TIPOBITO, SEXO, RACACOR,
 # TPMORTEOCO, OBITOGRAV, OBITOPUERP, CAUSABAS, TPOBITOCOR, MORTEPARTO
 
+dados_sim_2 = read.csv2("dados_sim_2.csv")
+
+table(dados_sim_2$TIPOBITO)
+table(dados_sim_2$SEXO)
+table(dados_sim_2$RACACOR)
+table(dados_sim_2$TPMORTEOCO)
+table(dados_sim_2$OBITOGRAV)
+table(dados_sim_2$OBITOPUERP)
+table(dados_sim_2$CAUSABAS)
+table(dados_sim_2$TPOBITOCOR)
+table(dados_sim_2$MORTEPARTO)
+
+#conferindo algumas outras variaveis:
+table(dados_sim_2$IDADE)
+table(dados_sim_2$ESC2010)
 
 # Tarefa 5. Atribuir para cada variável de dados_sim_2 como sendo NA a categoria de "Não informado ou Ignorado", 
 # geralmente com código 9
 # veja o dicionário do SIM para identificar qual o código das categorias de cada variável
 # Em variáveis quantitativas como IDADE verificar se existem valores como 9999 para NA
+
+dados_sim_2$IDADE[dados_sim_2$IDADE == 999] = NA
+dados_sim_2$ESC2010[dados_sim_2$ESC2010 == 9] = NA
+dados_sim_2$TPMORTEOCO[dados_sim_2$TPMORTEOCO == 9] = NA
+dados_sim_2$OBITOGRAV[dados_sim_2$OBITOGRAV == 9] = NA
+dados_sim_2$OBITOPUERP[dados_sim_2$OBITOPUERP == 9] = NA
+dados_sim_2$MORTEPARTO[dados_sim_2$MORTEPARTO == 9] = NA
+
 
 
 # Tarefa 6. Atribuir legendas para as categorias das variáveis qualitativas investigadas na tarefa 4.
@@ -558,6 +581,48 @@ write.csv2(dados_sim_2, "dados_sim_2.csv")
 #          2. Nesta Tarefa 6 não crie novas variáveis no banco de dados
 
 
+dados_sim_2$TIPOBITO = factor(dados_sim_2$TIPOBITO, levels = c(1, 2), 
+                              labels = c("Fetal", "Não fetal"))
+
+dados_sim_2$SEXO = factor(dados_sim_2$SEXO, levels = c(1, 2), 
+                          labels = c("Masculino", "Feminino"))
+
+
+dados_sim_2$RACACOR = factor(dados_sim_2$RACACOR, levels = c(1, 2, 3, 4, 5), 
+                             labels = c("Branca", "Preta", "Amarela", "Parda", "Indígena"))
+
+
+dados_sim_2$ESC2010 = factor(dados_sim_2$ESC2010, levels = c(0, 1, 2, 3, 4, 5), 
+                             labels = c("Sem escolaridade", "Fundamental I (1ª a 4ª série)", 
+                                        "Fundamental II (5ª a 8ª série)", "Médio (antigo 2º Grau)", 
+                                        "Superior incompleto", "Superior completo"))
+
+dados_sim_2$TPMORTEOCO = factor(dados_sim_2$TPMORTEOCO, levels = c(1, 2, 3, 4, 5, 8), 
+                                labels = c("Na gravidez", "No parto", "No abortamento", 
+                                           "Até 42 dias após o parto", "De 43 dias a 1 ano após gestação", 
+                                           "Não ocorreu nestes períodos"))
+
+
+dados_sim_2$OBITOGRAV = factor(dados_sim_2$OBITOGRAV, levels = c(1, 2), 
+                               labels = c("Sim", "Não"))
+
+dados_sim_2$OBITOPUERP = factor(dados_sim_2$OBITOPUERP, levels = c(1, 2, 3), 
+                                labels = c("Sim, até 42 dias após parto", 
+                                           "Sim, de 43 dias a 1 ano", "Não"))
+
+
+dados_sim_2$TPOBITOCOR = factor(dados_sim_2$TPOBITOCOR, levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9), 
+                                labels = c("Durante a gestação", "Durante o abortamento", 
+                                           "Após o abortamento", "No parto ou até 1 hora após", 
+                                           "No puerpério até 42 dias após parto", 
+                                           "Entre 43 dias e até 1 ano após parto", 
+                                           "Investigação não identificou o momento", 
+                                           "Mais de um ano após o parto", 
+                                           "Não ocorreu nas circunstâncias anteriores"))
+
+dados_sim_2$MORTEPARTO = factor(dados_sim_2$MORTEPARTO, levels = c(1, 2, 3), 
+                                labels = c("Antes", "Durante", "Após"))
+
 # Tarefa 7. Crie um banco de dados, de nome SIM_UF.csv (Exemplo: SIM_RJ.csv), contendo as 41 variáveis listadas no arquivo “Variáveis - Projeto - Tarefa 7 da Etapa 2.pdf”
 # Atenção:
 # 1. Para informações gerais utilize CAUSABAS, SEXO e IDADE
@@ -566,7 +631,121 @@ write.csv2(dados_sim_2, "dados_sim_2.csv")
 # 4. Para informações maternas utilize TPMORTEOCO, ESC e IDADE
 
 
-# Tarefa 8: Exporte o banco de dados com o nome SIM_UF.csv
+# Tratamento da IDADE para cálculo de Neonatais (converter tudo para DIAS) 
+# Primeiro dígito: 1=min, 2=hora, 3=dia, 4=ano, 5=>100 anos
+unidade_idade = as.numeric(substr(dados_sim_2$IDADE, 1, 1))
+valor_idade = as.numeric(substr(dados_sim_2$IDADE, 2, 3))
 
+# Criando idade em dias (0 para < 24h, valor para dias, 365+ para anos)
+dados_sim_2$IDADE_DIAS = ifelse(unidade_idade <= 2, 0,
+                                ifelse(unidade_idade == 3, valor_idade,
+                                       ifelse(unidade_idade == 4, valor_idade * 365, 
+                                              ifelse(unidade_idade == 5, (valor_idade + 100) * 365, NA))))
+
+#Auxiliares para Causas de Morte 
+inicial_causa = substr(dados_sim_2$CAUSABAS, 1, 1)
+dados_sim_2$NATURAL = ifelse(inicial_causa %in% c("V", "W", "X", "Y"), "Não", "Sim")
+
+# Auxiliares para registros completos
+reg_completos_14 = complete.cases(dados_sim_2)
+
+
+# Funções auxiliares
+calc_mun = function(coluna) as.vector(tapply(coluna, dados_sim_2$CODMUNRES, sum, na.rm = TRUE))
+
+# Criando o dataframe dos Municípios (n linhas)
+municipios = data.frame(
+  ANO = 2015, 
+  NIVEL = "MUNICIPIO",
+  CODMUNRES = names(table(dados_sim_2$CODMUNRES)),
+  TO = as.vector(table(dados_sim_2$CODMUNRES)),
+  TORC = calc_mun(rep(0, nrow(dados_sim_2))),
+  TORCR = calc_mun(reg_completos_14),
+  TO_NN = calc_mun(dados_sim_2$NATURAL == "Não"),
+  TO_N = calc_mun(dados_sim_2$NATURAL == "Sim"),
+  TO_CBI = calc_mun(inicial_causa %in% c("A", "B")),
+  TO_CB_N = calc_mun(inicial_causa %in% c("C", "D")),
+  TO_CB_C = calc_mun(inicial_causa == "I"),
+  TO_CB_R = calc_mun(inicial_causa == "J"),
+  TO_CB_O = calc_mun(dados_sim_2$NATURAL == "Sim" & !inicial_causa %in% c("A","B","C","D","I","J")),
+  TO_M = calc_mun(dados_sim_2$SEXO == "Masculino"),
+  TO_F = calc_mun(dados_sim_2$SEXO == "Feminino"),
+  TO_F_IF = calc_mun(dados_sim_2$SEXO == "Feminino" & unidade_idade == 4 & valor_idade >= 15 & valor_idade <= 49),
+  TO_FT = calc_mun(dados_sim_2$TIPOBITO == "Fetal"),
+  TO_NT = calc_mun(dados_sim_2$TIPOBITO == "Não fetal" & dados_sim_2$IDADE_DIAS <= 27),
+  TO_NT_P = calc_mun(dados_sim_2$TIPOBITO == "Não fetal" & dados_sim_2$IDADE_DIAS <= 6),
+  TO_NT_T = calc_mun(dados_sim_2$TIPOBITO == "Não fetal" & dados_sim_2$IDADE_DIAS >= 7 & dados_sim_2$IDADE_DIAS <= 27),
+  TO_PNT = calc_mun(dados_sim_2$TIPOBITO == "Não fetal" & dados_sim_2$IDADE_DIAS >= 28 & dados_sim_2$IDADE_DIAS <= 364),
+  TO_MT_G = calc_mun(dados_sim_2$TPMORTEOCO == "Na gravidez"),
+  TONT_B = calc_mun(dados_sim_2$IDADE_DIAS <= 27 & dados_sim_2$RACACOR == "Branca"),
+  TONT_PT = calc_mun(dados_sim_2$IDADE_DIAS <= 27 & dados_sim_2$RACACOR == "Preta"),
+  TONT_A = calc_mun(dados_sim_2$IDADE_DIAS <= 27 & dados_sim_2$RACACOR == "Amarela"),
+  TONT_PD = calc_mun(dados_sim_2$IDADE_DIAS <= 27 & dados_sim_2$RACACOR == "Parda"),
+  TONT_I = calc_mun(dados_sim_2$IDADE_DIAS <= 27 & dados_sim_2$RACACOR == "Indígena"),
+  TO_MT = calc_mun(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto", "De 43 dias a 1 ano após gestação")),
+  TO_MT_DG = calc_mun(dados_sim_2$TPMORTEOCO == "Na gravidez"),
+  TO_MT_PT = calc_mun(dados_sim_2$TPMORTEOCO == "No parto"),
+  TO_MT_AB = calc_mun(dados_sim_2$TPMORTEOCO == "No abortamento"),
+  TO_MT_42 = calc_mun(dados_sim_2$TPMORTEOCO == "Até 42 dias após o parto"),
+  TO_MT_43 = calc_mun(dados_sim_2$TPMORTEOCO == "De 43 dias a 1 ano após gestação"),
+  TO_MT_P = calc_mun(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto")),
+  TO_MT_P_I = calc_mun(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & unidade_idade == 4 & valor_idade >= 15 & valor_idade <= 49),
+  TO_MT_P_ES = calc_mun(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Sem escolaridade"),
+  TO_MT_P_EFI = calc_mun(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Fundamental I (1ª a 4ª série)"),
+  TO_MT_P_EFII = calc_mun(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Fundamental II (5ª a 8ª série)"),
+  TO_MT_P_EM = calc_mun(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Médio (antigo 2º Grau)"),
+  TO_MT_P_ESI = calc_mun(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Superior incompleto"),
+  TO_MT_P_ESC = calc_mun(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Superior completo")
+)
+
+# Criando a linha para a UF (Total do Estado)
+uf_linha = data.frame(
+  ANO = 2015, NIVEL = "UF", CODMUNRES = "14",
+  TO = nrow(dados_sim_2),
+  TORC = 0, # Placeholder
+  TORCR = sum(reg_completos_14),
+  TO_NN = sum(dados_sim_2$NATURAL == "Não", na.rm = T),
+  TO_N = sum(dados_sim_2$NATURAL == "Sim", na.rm = T),
+  TO_CBI = sum(inicial_causa %in% c("A", "B"), na.rm = T),
+  TO_CB_N = sum(inicial_causa %in% c("C", "D"), na.rm = T),
+  TO_CB_C = sum(inicial_causa == "I", na.rm = T),
+  TO_CB_R = sum(inicial_causa == "J", na.rm = T),
+  TO_CB_O = sum(dados_sim_2$NATURAL == "Sim" & !inicial_causa %in% c("A","B","C","D","I","J"), na.rm = T),
+  TO_M = sum(dados_sim_2$SEXO == "Masculino", na.rm = T),
+  TO_F = sum(dados_sim_2$SEXO == "Feminino", na.rm = T),
+  TO_F_IF = sum(dados_sim_2$SEXO == "Feminino" & unidade_idade == 4 & valor_idade >= 15 & valor_idade <= 49, na.rm = T),
+  TO_FT = sum(dados_sim_2$TIPOBITO == "Fetal", na.rm = T),
+  TO_NT = sum(dados_sim_2$TIPOBITO == "Não fetal" & dados_sim_2$IDADE_DIAS <= 27, na.rm = T),
+  TO_NT_P = sum(dados_sim_2$TIPOBITO == "Não fetal" & dados_sim_2$IDADE_DIAS <= 6, na.rm = T),
+  TO_NT_T = sum(dados_sim_2$TIPOBITO == "Não fetal" & dados_sim_2$IDADE_DIAS >= 7 & dados_sim_2$IDADE_DIAS <= 27, na.rm = T),
+  TO_PNT = sum(dados_sim_2$TIPOBITO == "Não fetal" & dados_sim_2$IDADE_DIAS >= 28 & dados_sim_2$IDADE_DIAS <= 364, na.rm = T),
+  TO_MT_G = sum(dados_sim_2$TPMORTEOCO == "Na gravidez", na.rm = T),
+  TONT_B = sum(dados_sim_2$IDADE_DIAS <= 27 & dados_sim_2$RACACOR == "Branca", na.rm = T),
+  TONT_PT = sum(dados_sim_2$IDADE_DIAS <= 27 & dados_sim_2$RACACOR == "Preta", na.rm = T),
+  TONT_A = sum(dados_sim_2$IDADE_DIAS <= 27 & dados_sim_2$RACACOR == "Amarela", na.rm = T),
+  TONT_PD = sum(dados_sim_2$IDADE_DIAS <= 27 & dados_sim_2$RACACOR == "Parda", na.rm = T),
+  TONT_I = sum(dados_sim_2$IDADE_DIAS <= 27 & dados_sim_2$RACACOR == "Indígena", na.rm = T),
+  TO_MT = sum(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto", "De 43 dias a 1 ano após gestação"), na.rm = T),
+  TO_MT_DG = sum(dados_sim_2$TPMORTEOCO == "Na gravidez", na.rm = T),
+  TO_MT_PT = sum(dados_sim_2$TPMORTEOCO == "No parto", na.rm = T),
+  TO_MT_AB = sum(dados_sim_2$TPMORTEOCO == "No abortamento", na.rm = T),
+  TO_MT_42 = sum(dados_sim_2$TPMORTEOCO == "Até 42 dias após o parto", na.rm = T),
+  TO_MT_43 = sum(dados_sim_2$TPMORTEOCO == "De 43 dias a 1 ano após gestação", na.rm = T),
+  TO_MT_P = sum(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto"), na.rm = T),
+  TO_MT_P_I = sum(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & unidade_idade == 4 & valor_idade >= 15 & valor_idade <= 49, na.rm = T),
+  TO_MT_P_ES = sum(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Sem escolaridade", na.rm = T),
+  TO_MT_P_EFI = sum(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Fundamental I (1ª a 4ª série)", na.rm = T),
+  TO_MT_P_EFII = sum(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Fundamental II (5ª a 8ª série)", na.rm = T),
+  TO_MT_P_EM = sum(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Médio (antigo 2º Grau)", na.rm = T),
+  TO_MT_P_ESI = sum(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Superior incompleto", na.rm = T),
+  TO_MT_P_ESC = sum(dados_sim_2$TPMORTEOCO %in% c("Na gravidez", "No parto", "No abortamento", "Até 42 dias após o parto") & dados_sim_2$ESC2010 == "Superior completo", na.rm = T)
+)
+
+# Combinando UF (1ª linha) + Municípios e exportando (Tarefa 8)
+SIM_RR = rbind(uf_linha, municipios)
+
+
+# Tarefa 8: Exporte o banco de dados com o nome SIM_UF.csv
+write.csv2(SIM_RR, "SIM_RR.csv")
 # Ao terminar a ETAPA 2 commite e envie para o repositório REMOTO com o comentário "Dados da UF e Script Etapa 2"
 # Faça um merge de script de SIM para main
